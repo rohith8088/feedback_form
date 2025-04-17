@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: BuildConfig
+metadata:
+  name: feedback-app-build
+spec:
+  source:
+    type: Git
+    git:
+      uri: https://github.com/your-username/your-repo.git  # Replace with your repo
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        name: nodejs:18 # Choose appropriate Node.js version
+  output:
+    to:
+      kind: ImageStreamTag
+      name: feedback-app:latest
+
+---
+
+apiVersion: v1
+kind: ImageStream
+metadata:
+  name: feedback-app
+
+---
+
+apiVersion: v1
+kind: DeploymentConfig
+metadata:
+  name: feedback-app
+spec:
+  replicas: 1
+  selector:
+    app: feedback-app
+  template:
+    metadata:
+      labels:
+        app: feedback-app
+    spec:
+      containers:
+        - name: feedback-app
+          image: feedback-app:latest
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+            - name: feedback-storage
+              mountPath: /opt/app-root/src/feedback.json
+              subPath: feedback.json
+      volumes:
+        - name: feedback-storage
+          emptyDir: {} # Optional: use a PersistentVolumeClaim for permanent storage
+  triggers:
+    - type: ConfigChange
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+          - feedback-app
+        from:
+          kind: ImageStreamTag
+          name: feedback-app:latest
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: feedback-app
+spec:
+  selector:
+    app: feedback-app
+  ports:
+    - port: 80
+      targetPort: 3000
+
+---
+
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: feedback-app
+spec:
+  to:
+    kind: Service
+    name: feedback-app
+  port:
+    targetPort: 3000
