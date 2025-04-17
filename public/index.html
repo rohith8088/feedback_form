@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Feedback App</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    .feedback { margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px; }
+    .entry { margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+
+  <h1>Leave Your Feedback</h1>
+  <form id="feedbackForm">
+    <input type="text" id="name" placeholder="Your Name" required><br><br>
+    <textarea id="message" placeholder="Your Feedback" required></textarea><br><br>
+    <button type="submit">Submit</button>
+  </form>
+
+  <div class="feedback" id="feedbackList">
+    <h2>All Feedback</h2>
+  </div>
+
+  <script>
+    const form = document.getElementById('feedbackForm');
+    const feedbackList = document.getElementById('feedbackList');
+
+    // Load existing feedback on page load
+    fetch('/api/feedback')
+      .then(res => res.json())
+      .then(data => {
+        data.forEach(entry => addEntry(entry));
+      });
+
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const name = document.getElementById('name').value;
+      const message = document.getElementById('message').value;
+
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, message })
+      });
+
+      if (res.ok) {
+        addEntry({ name, message });
+        form.reset();
+      }
+    });
+
+    function addEntry({ name, message }) {
+      const entry = document.createElement('div');
+      entry.className = 'entry';
+      entry.innerHTML = `<strong>${name}</strong>: ${message}`;
+      feedbackList.appendChild(entry);
+    }
+  </script>
+
+</body>
+</html>
